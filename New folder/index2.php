@@ -23,7 +23,7 @@ function split_pdf($filename, $end_directory = false)
         $new_pdf->AddPage();
 
         $new_pdf->setSourceFile($filename);
-        $templateId = $new_pdf->importPage(1);//only half of the content must be taken from this page vertically
+        $templateId = $new_pdf->importPage(1);
 
         // Get the original page size
         $size = $new_pdf->getTemplateSize($templateId);
