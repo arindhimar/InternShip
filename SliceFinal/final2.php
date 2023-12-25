@@ -1,10 +1,22 @@
 <?php
-    require_once 'fpdf/fpdf.php';
-    require_once 'fpdi/fpdi.php';
+require_once 'fpdf/fpdf.php';
+require_once 'fpdi/fpdi.php';
+
+$flag = $_POST['flag'];
+
+if ($flag == 1) {
+    $tarDir = "tempL/";
+    $uploadFilePath = $tarDir . $_FILES['img']['name'];
+    $inputPath = $_FILES['img']['tmp_name']; // Use 'tmp_name' to get the temporary path
+    delFiles('split/');
+    move_uploaded_file($inputPath, $uploadFilePath);
+    $combinedFilePath = split_pdf($uploadFilePath, 'split/');
+    echo json_encode(['filePath' => $combinedFilePath]);
+    // echo $combinedFilePath;
+}
+
 function split_pdf($filename, $end_directory = 'split/')
 {
-
-
     // Ensure the end directory exists
     if (!is_dir($end_directory)) {
         mkdir($end_directory, 0777, true);
@@ -34,31 +46,29 @@ function split_pdf($filename, $end_directory = 'split/')
 
             $new_pdf->SetFillColor(255, 255, 255);
 
-            $new_pdf->Rect(0, $midpoint-23, $size['w'], $size['h'] - $midpoint, 'F');
+            $new_pdf->Rect(0, $midpoint - 23, $size['w'], $size['h'] - $midpoint, 'F');
 
-
-            if($i<$pagecount){
+            if ($i < $pagecount) {
                 $i = $i + 1; // Increment here
 
                 $templateId = $new_pdf->importPage($i);
 
-                $new_pdf->useTemplate($templateId, 0, $midpoint+25, $width, $midpoint*2);
+                $new_pdf->useTemplate($templateId, 0, $midpoint + 25, $width, $midpoint * 2);
             }
-
-
 
             $new_filename = $end_directory . $i . '.pdf';
             $new_pdf->Output($new_filename, "F");
 
-            echo "File saved: " . $new_filename . "<br />\n";
-
-            
+            // echo "File saved: " . $new_filename . "<br />\n";
         }
+
+        // Combine the generated PDFs
+        return mergeAllFiles($end_directory, 'combined_output.pdf');
+
     } catch (Exception $e) {
-        echo 'Caught exception: ', $e->getMessage(), "\n";
+        // echo 'Caught exception: ', $e->getMessage(), "\n";
     }
 }
-
 function mergeAllFiles($directory, $outputFilename)
 {
     $pdf = new FPDI();
@@ -79,15 +89,24 @@ function mergeAllFiles($directory, $outputFilename)
     }
 
     // Save the combined PDF
-    $pdf->Output($outputFilename, 'F');
-    echo "Combined file saved: " . $outputFilename . "<br />\n";
+    $outputPath = $directory . $outputFilename;
+    $pdf->Output($outputPath, 'F');
+
+    
+
+    // // Delete individual PDF files
+    // foreach ($pdfFiles as $pdfFile) {
+    //     unlink($pdfFile);
+    // }
+
+    return $outputPath;
 }
 
-// Example usage: Merge all PDFs in 'split' directory into 'combined_output.pdf'
-
-
-split_pdf('test.pdf', 'split/');
-mergeAllFiles('split/', 'combined_output.pdf');
-
+function delFiles($directory){
+    $pdfFiles = glob($directory . '*.pdf');
+    foreach ($pdfFiles as $pdfFile) {
+        unlink($pdfFile);
+    }
+}
 
 ?>

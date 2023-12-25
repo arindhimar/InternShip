@@ -1,5 +1,20 @@
 <?php
 
+$flag=$_POST['flag'];
+
+if($flag==1){
+    $tarDir = "tempL/";
+    $uploadFilePath = $tarDir . $_FILES['img']['name'];
+    $inputPath = $tarDir . $_FILES['img']['name'];
+    move_uploaded_file($inputPath, $uploadFilePath);
+
+    split_pdf('input.pdf', 'split/');
+
+}
+
+
+
+
 function split_pdf($filename, $end_directory = false)
 {
     require_once 'fpdf/fpdf.php';
@@ -44,4 +59,3 @@ function split_pdf($filename, $end_directory = false)
 }
 
 // Test the function
-split_pdf('input.pdf', 'split/');
