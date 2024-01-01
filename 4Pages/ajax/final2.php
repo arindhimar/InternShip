@@ -74,7 +74,7 @@ function split_pdf($filename, $end_directory = '../split/') // Update the direct
         
     
                 $new_pdf->useTemplate($templateId, -275, 8, $newWidth*1.4, $newHeight*1.4);
-                $new_pdf->Rect(-330, 95, $size['w'], $size['h'] , 'F');
+                $new_pdf->Rect(-335, 95, $size['w'], $size['h'] , 'F');
 
     
             }
