@@ -13,16 +13,16 @@ $(document).ready(function () {
             data: temp,
             contentType: false,
             processData: false,
-            dataType: 'json',  // Specify that you expect JSON response
+            // dataType: 'json',  // Specify that you expect JSON response
             success: function (response) {
                 // Assuming the response contains the file path
-                let generatedFilePath = response.filePath;
-                console.log(response)
+                // let generatedFilePath = response.filePath;
+                // console.log(response)
                 // Open the file in a new tab
-                window.open(generatedFilePath, '_blank');
+                window.open(response);
             },
             error: function (xhr, status, error) {
-                console.error(xhr.responseText);
+                // console.error(xhr.responseText);
             }
         });
     });

@@ -145,7 +145,7 @@ function mergeAllFiles($directory, $outputFilename)
     $outputPath = $directory . $outputFilename;
     $pdf->Output($outputPath, 'F');
 
-    return 'http://localhost/InternShip/4pages/split/combined_output.pdf';
+    return 'split/combined_output.pdf';
 }
 
 function delFiles($directory)
