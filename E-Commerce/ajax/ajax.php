@@ -2,9 +2,7 @@
 
 require_once '../fpdf/fpdf.php';
 require_once '../fpdi/fpdi.php';
-
 require_once 'PDF_Rotate.php';
-
 
 $flag = $_POST['flag'];
 
@@ -19,6 +17,82 @@ function getFile()
     } else {
         return 0;
     }
+}
+
+function getFiles()
+{
+    $tarDir = "../tempL/"; // Original File
+    $uploadedFiles = $_FILES['img']; // Array of files
+
+    $successCount = 0;
+
+    // If only one file is uploaded, make it an array for consistent handling
+    if (!is_array($uploadedFiles['name'])) {
+        $uploadedFiles = array(
+            'name' => array($uploadedFiles['name']),
+            'tmp_name' => array($uploadedFiles['tmp_name']),
+        );
+    }
+
+    // Loop through each file in the array
+    for ($i = 0; $i < count($uploadedFiles['name']); $i++) {
+        $fileName = $uploadedFiles['name'][$i]; // File Name
+        $uploadFilePath = $tarDir . $fileName; // Target Path
+        $inputPath = $uploadedFiles['tmp_name'][$i]; // Temp file location
+
+        // Move each file to the target location
+        if (move_uploaded_file($inputPath, $uploadFilePath)) {
+            $successCount++;
+        }
+    }
+
+    // Check if all files were successfully moved
+    if ($successCount === count($uploadedFiles['name'])) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+function mergeAllFiles()
+{
+    $uploadedFiles = $_FILES['img']; // Array of files
+
+    $uploadedFileNames = [];
+    for ($i = 0; $i < count($uploadedFiles['name']); $i++) {
+        $uploadedFileNames[] = $uploadedFiles['name'][$i]; // Add file name to the array
+    }
+
+    $dir = "../tempL/";
+
+    $pdf = new Fpdi();
+
+    foreach ($uploadedFileNames as $fileName) {
+        $pdfFile = $dir . $fileName;
+
+        if (file_exists($pdfFile)) {
+            $totalPages=$pdf->setSourceFile($pdfFile);
+
+            // Iterate through each page of the current PDF
+            //  = $pdf->getNumberOfPages();
+            for ($pageNumber = 1; $pageNumber <= $totalPages; $pageNumber++) {
+                $templateId = $pdf->importPage($pageNumber);
+                $size = $pdf->getTemplateSize($templateId);
+                $pdf->AddPage('P', array($size['w'], $size['h']));
+                $pdf->useTemplate($templateId);
+            }
+        } else {
+            // Handle the case where the file does not exist
+            // You might want to log an error or take appropriate action
+        }
+    }
+
+    $outputPath = '../split/';
+    $pdf->Output($outputPath.'merged_pdf.pdf', 'F');
+
+    echo json_encode(['filePath' => 'split/'.'merged_pdf.pdf']);
+
+
 }
 
 function amazonlabel($controlFlag)
@@ -103,7 +177,6 @@ function amazonlabel($controlFlag)
 
     echo json_encode(['filePath' => $croppedFilePath]);
 }
-
 
 function flipkartlabel($controlFlag)
 {
@@ -315,7 +388,7 @@ function meesholabel($controlFlag)
     echo json_encode(['filePath' => $croppedFilePath]);
 }
 
-function delFiles()
+function delFile()
 {
     $tarDir = "../tempL/"; // Original File
     $fileName = $_FILES['img']['name']; // File Name
@@ -328,8 +401,130 @@ function delFiles()
     unlink($delFilePath);
 }
 
+function delFiles()
+{
+    $tarDir = "../tempL/"; // Original File
+
+    if (isset($_FILES['img']['name']) && is_array($_FILES['img']['name'])) {
+        foreach ($_FILES['img']['name'] as $fileName) {
+            $delFilePath = $tarDir . $fileName; // Target Path
+            unlink($delFilePath);
+
+            $newFilename = 'merged_pdf.pdf'; // Cropped file name
+            $delFilePath = '../split/' . $newFilename;
+            unlink($delFilePath);
+        }
+    }
+}
+
+
+function imageConversion($controlFlag1, $controlFlag2)
+{
+    if ($controlFlag1 != $controlFlag2) {
+        $tarDir = "../tempL/"; // Original File
+        $fileName = $_FILES['img']['name']; // File Name
+        $uploadFilePath = $tarDir . $fileName; // Target Path
+        $inputPath = $_FILES['img']['tmp_name']; // Temp file location
+
+        // Check if the uploaded file is an image
+        $imageInfo = getimagesize($uploadFilePath);
+        if (!$imageInfo) {
+            echo json_encode(['error' => 'Invalid image file']);
+            return;
+        }
+
+        // Create an image resource based on the file type
+        switch ($imageInfo['mime']) {
+            case 'image/jpeg':
+                $image = imagecreatefromjpeg($uploadFilePath);
+                break;
+            case 'image/jpg':
+                $image = imagecreatefromjpeg($uploadFilePath);
+                break;
+            case 'image/png':
+                $image = imagecreatefrompng($uploadFilePath);
+                break;
+            case 'image/webp':
+                $image = imagecreatefromwebp($uploadFilePath);
+                break;
+            default:
+                echo json_encode(['error' => 'Unsupported image type']);
+                return;
+        }
+
+        // Perform any additional image processing or modifications here
+
+        // Create a new image with the same dimensions
+        $width = imagesx($image);
+        $height = imagesy($image);
+        $newImage = imagecreatetruecolor($width, $height);
+
+        // Copy the original image onto the new image
+        imagecopy($newImage, $image, 0, 0, 0, 0, $width, $height);
+
+        // Save the new image based on controlflag2
+        switch ($controlFlag2) {
+            case 8:
+                $outputPath = '../split/' .'converted_image.webp';
+                imagewebp($newImage, $outputPath, 100); // 100 is the quality (0-100)
+                $outputPath = 'split/'  . 'converted_image.webp';
+                break;
+            case 6:
+                $outputPath = '../split/' .'converted_image.jpeg';
+                imagejpeg($newImage, $outputPath, 100); // 100 is the quality (0-100)
+                $outputPath = 'split/'  . 'converted_image.jpeg';
+
+                break;
+            case 7:
+                $outputPath = '../split/' . 'converted_image.png';
+                imagepng($newImage, $outputPath, 0); // 0 is the compression level (no compression)
+                $outputPath = 'split/'  . 'converted_image.png';
+
+                break;
+            default:
+                echo json_encode(['error' => 'Unsupported conversion type']);
+                imagedestroy($image);
+                imagedestroy($newImage);
+                return;
+        }
+
+        // Free up resources
+        imagedestroy($image);
+        imagedestroy($newImage);
+
+        echo json_encode(['filePath' => $outputPath]);
+    } else {
+        echo json_encode(['error' => 'Control flags are equal']);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//Function Calls
 if ($flag == 0) {
+    delFile();
+}
+
+
+if ($flag == 100) {//merge delete
     delFiles();
+    
 }
 
 if ($flag == 1) { //meesho
@@ -352,5 +547,20 @@ if ($flag == 1) { //meesho
         amazonlabel($ctrlFlag);
     } else {
         //something went wrong!!
+    }   
+}else if($flag==4){
+    getFiles();
+    try {
+        $outputFilename = 'merged.pdf';
+        $folderPath = 'tempL/';
+        mergeAllFiles();
+    } catch (\Exception $e) {
+        echo json_encode(['filePath' => 'Error: ' . $e->getMessage()]);
     }
+}else if($flag==5){
+    getFile();
+    imageConversion($flag,$_POST['ctrlflag']);
+    // imageConversion($flag,8);
+
+    
 }

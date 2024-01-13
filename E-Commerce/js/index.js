@@ -29,15 +29,27 @@ function download_file(fileURL, fileName) {
     }
 }
 
-function removeFile() {
+function removeFile(x) {
 
-    
+
     let temp = new FormData();
 
-    temp.append("flag", 0);
-    // temp.append("ctrlflag", 0);
+    if (x == 4) {
+        temp.append("flag", 100);
+        var files = $("#txtFile")[0].files;
 
-    temp.append("img", $("#txtFile")[0].files[0]);
+        for (var i = 0; i < files.length; i++) {
+            temp.append("img[]", files[i]); // Use "img[]" to send an array of files
+        }
+    }
+    else {
+        temp.append("flag", 0);
+        temp.append("img", $("#txtFile")[0].files[0]);
+    }
+
+    
+
+
 
 
     $.ajax({
@@ -47,7 +59,7 @@ function removeFile() {
         contentType: false,
         processData: false,
         success: function (response) {
-            
+
         }
     });
 }
@@ -59,18 +71,31 @@ $(document).ready(function () {
         e.preventDefault();
 
         let temp = new FormData();
-        
-        
+
+
         var selectedPlatform = $('input[name="platform"]:checked').val();
         var selectedType = $('input[name="layout"]:checked').val();
+
+
         
+    
+
 
         temp.append("flag", selectedPlatform);
-        temp.append("ctrlflag",selectedType );
+        temp.append("ctrlflag", selectedType);
 
-        temp.append("img", $("#txtFile")[0].files[0]);
-
-        // console.log()
+        if (selectedPlatform == 4) {
+            temp.append("flag", selectedPlatform);
+            var files = $("#txtFile")[0].files;
+    
+            for (var i = 0; i < files.length; i++) {
+                temp.append("img[]", files[i]); // Use "img[]" to send an array of files
+            }
+        }
+        else {
+            temp.append("flag", selectedPlatform);
+            temp.append("img", $("#txtFile")[0].files[0]);
+        }
 
         $.ajax({
             type: "post",
@@ -83,16 +108,10 @@ $(document).ready(function () {
                 // Assuming the response contains the file path
                 let generatedFilePath = response.filePath;
                 console.log(generatedFilePath)
-                // Open the file in a new tab
-                // window.open(gener    atedFilePath, '_blank');
+                // let fileName = generatedFilePath.split('/').pop();
 
-                // myTempWindow = window.open(generatedFilePath, '', 'left=10000,screenX=10000');
-                // myTempWindow.document.execCommand('SaveAs', 'null', 'download.pdf');
-                // myTempWindow.close();
-
-
-                download_file(generatedFilePath, 'label-cropped '+$("#txtFile")[0].files[0].name); //call function
-                removeFile();
+                download_file(generatedFilePath, 'label-cropped ' + generatedFilePath); //call function
+                removeFile(selectedPlatform);
             },
             error: function (xhr, status, error) {
                 console.error(xhr.responseText);
